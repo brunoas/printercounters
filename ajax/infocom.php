@@ -34,11 +34,11 @@ Session::checkLoginUser();
 
 switch ($_POST['action']) {
    case 'getTco':
-      header('Content-Type: application/json; charset=UTF-8"');
+      header('Content-Type: application/json; charset=UTF-8');
       $result = 0;
       if (isset($_POST['items_id']) && isset($_POST['itemtype'])) {
          $item_recordmodel = new PluginPrintercountersItem_Recordmodel();
-         if ($item_recordmodel->getFromDBByCrit(['itemtype' => "LOWER(" . $_POST['itemtype'] . ")",
+         if ($item_recordmodel->getFromDBByCrit(['itemtype' => strtolower($_POST['itemtype']),
                                                  'items_id'        => $_POST['items_id']])) {
             $result = $item_recordmodel->fields['global_tco'];
          }

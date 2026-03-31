@@ -89,6 +89,10 @@ class PluginPrintercountersRecordmodel extends CommonDropdown {
       return _n("Record model", "Record models", $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-th-list";
+   }
+
    /**
     * Provides search options configuration. Do not rely directly
     * on this, @see CommonDBTM::searchOptions instead.
@@ -346,7 +350,7 @@ class PluginPrintercountersRecordmodel extends CommonDropdown {
           WHERE `" . $itemjoin . "`.`items_id` IN ('" . implode("','", $items_id) . "')
           AND LOWER(`" . $itemjoin . "`.`itemtype`) = '" . $itemtype . "'";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['items_id']]['sysdescr'][]               = $data['sysdescr'];

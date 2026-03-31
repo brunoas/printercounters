@@ -26,7 +26,16 @@
  along with printercounters. If not, see <http://www.gnu.org/licenses/>.
  --------------------------------------------------------------------------
  */
-define ("GLPI_ROOT", "../../..");
-include GLPI_ROOT."/config/based_config.php";
+$glpi_root = realpath(__DIR__ . "/../../..");
+
+// GLPI 11 bootstrap
+require_once $glpi_root . '/src/Glpi/Application/ResourcesChecker.php';
+(new \Glpi\Application\ResourcesChecker($glpi_root))->checkResources();
+
+require_once $glpi_root . '/vendor/autoload.php';
+
+$kernel = new \Glpi\Kernel\Kernel();
+$kernel->boot();
+
 echo "GLPI_LOG_DIR=".GLPI_LOG_DIR."\n";
 echo "GLPI_LOCK_DIR=".GLPI_LOCK_DIR."\n";

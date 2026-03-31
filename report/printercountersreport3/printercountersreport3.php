@@ -112,7 +112,7 @@ if ($endDate != 'NULL' && $startDate != 'NULL') {
                           AND '".$datecriteria->getEndDate()."' > `glpi_plugin_printercounters_budgets`.`end_date`))
               $entity_restrict";
 
-   $result = $DB->query($query);
+   $result = $DB->doQuery($query);
    $output = [];
    if ($DB->numrows($result)) {
       while ($data = $DB->fetchAssoc($result)) {

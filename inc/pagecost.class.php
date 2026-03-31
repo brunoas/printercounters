@@ -277,7 +277,7 @@ class PluginPrintercountersPagecost extends CommonDBTM {
                   AND `".$this->getTable()."`.`plugin_printercounters_countertypes_id` =  `glpi_plugin_printercounters_countertypes_recordmodels`.`plugin_printercounters_countertypes_id`)
           WHERE `".$this->getTable()."`.`plugin_printercounters_billingmodels_id` = ".Toolbox::cleanInteger($billingmodels_id);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;

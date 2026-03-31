@@ -78,7 +78,7 @@ class PluginPrintercountersToolbox {
           FROM ".$table."
           WHERE `name` LIKE '%".$name."%';";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             return $data['count'];

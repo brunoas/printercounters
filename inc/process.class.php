@@ -187,7 +187,7 @@ class PluginPrintercountersProcess extends CommonDBTM {
          $query .= " AND `".$itemjoin."`.`id` = ".$this->items_id;
       }
 
-      $result_ocs = $DB->query($query);
+      $result_ocs = $DB->doQuery($query);
       if ($DB->numrows($result_ocs) > 0) {
          while ($data = $DB->fetchArray($result_ocs)) {
             $ip[$data['items_id']][$data['cards_id']]['ip'][] = $data['ip'];
@@ -268,7 +268,7 @@ class PluginPrintercountersProcess extends CommonDBTM {
          }
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          // Items in error
          if ($config_data['enable_error_handler'] && $errorHandler) {
@@ -530,7 +530,7 @@ class PluginPrintercountersProcess extends CommonDBTM {
                 LEFT JOIN `".$itemjoin2."` 
                    ON (`".$itemjoin2."`.`id` = `".$itemjoin."`.`items_id`)";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $link = Toolbox::getItemTypeFormURL($this->itemtype).'?id='.$data['items_id'];

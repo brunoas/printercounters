@@ -88,6 +88,10 @@ class PluginPrintercountersBillingmodel extends CommonDropdown {
       return _n("Billing model", "Billing models", $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-file-invoice-dollar";
+   }
+
    /**
     * Provides search options configuration. Do not rely directly
     * on this, @see CommonDBTM::searchOptions instead.

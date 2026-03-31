@@ -42,27 +42,46 @@ if ($argv) {
    }
 }
 
-// Can't run on MySQL replicate
-$USEDBREPLICATE = 0;
-$DBCONNECTION_REQUIRED = 1;
+// GLPI 11 bootstrap
+$glpi_root = realpath(__DIR__ . "/../../..");
 
+require_once $glpi_root . '/src/Glpi/Application/ResourcesChecker.php';
+(new \Glpi\Application\ResourcesChecker($glpi_root))->checkResources();
 
-include ('../../../inc/includes.php');
+require_once $glpi_root . '/vendor/autoload.php';
+
+$kernel = new \Glpi\Kernel\Kernel();
+$kernel->boot();
+
+if (!($DB instanceof DBmysql) || !$DB->connected) {
+   die("ERROR: Database connection failed.\n");
+}
+
+if (!Config::isLegacyConfigurationLoaded()) {
+   die("ERROR: Unable to load GLPI configuration.\n");
+}
 
 $_SESSION["glpicronuserrunning"] = $_SESSION["glpiname"] = 'printercounters';
-// Check PHP Version - sometime (debian) cli version != module version
-if (version_compare(phpversion(), '5.4', 'lt')) {
-   die("PHP version:".phpversion()." - "."You must install at least PHP 5.4\n\n");
-}
-// Chech Memory_limit - sometine cli limit (php-cli.ini) != module limit (php.ini)
+
+// Check Memory_limit
 $mem = Toolbox::getMemoryLimit();
 if (($mem > 0) && ($mem < (64 * 1024 * 1024))) {
-   die("PHP memory_limit = ".$mem." - "."A minimum of 64Mio is commonly required for GLPI.'\n\n");
+   die("PHP memory_limit = ".$mem." - "."A minimum of 64Mio is commonly required for GLPI.\n\n");
 }
 
-$config = PluginPrintercountersConfig::getInstance();
+try {
+   $config = PluginPrintercountersConfig::getInstance();
 
-if (Plugin::isPluginActive("printercounters") && !$config['disable_autosearch']) {
+   if (!Plugin::isPluginActive("printercounters")) {
+      echo "Plugin printercounters is not active\n";
+      exit(1);
+   }
+
+   if (!empty($config['disable_autosearch']) && $config['disable_autosearch']) {
+      echo "Automatic search is disabled in config\n";
+      exit(1);
+   }
+
    $sonprocess_nbr = $_GET['sonprocess_nbr'];
    $sonprocess_id  = $_GET['sonprocess_id'];
    $itemtype       = $_GET['itemtype'];
@@ -83,8 +102,8 @@ if (Plugin::isPluginActive("printercounters") && !$config['disable_autosearch'])
 
    echo implode("\n", $messages);
 
-} else {
-   echo __('Plugin disabled or automatic record disabled', 'printercounters');
+} catch (\Throwable $e) {
+   echo "ERROR: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine() . "\n";
    exit(1);
 }
 

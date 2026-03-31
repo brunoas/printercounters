@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(//d/printercounters-master/**)",
+      "Write(//d/printercounters-master/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -156,7 +156,7 @@ class PluginPrintercountersNotificationTargetAdditional_Data extends Notificatio
                    WHERE `itemtype`='PluginPrintercountersAdditional_Data'
                    AND `name` = '".self::TONER_ALERT_NAME."'";
 
-      $result = $DB->query($query_id) or die($DB->error());
+      $result = $DB->doQuery($query_id);
       if ($DB->numrows($result) > 0) {
          $templates_id = $DB->result($result, 0, 'id');
       } else {

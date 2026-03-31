@@ -118,8 +118,26 @@ ini_set("memory_limit", "-1");
 ini_set("max_execution_time", "0");
 
 chdir(dirname($_SERVER["argv"][0]));
-define ("GLPI_ROOT", realpath(dirname($_SERVER["argv"][0])."/../../.."));
-require GLPI_ROOT."/inc/based_config.php";
+$glpi_root = realpath(dirname($_SERVER["argv"][0])."/../../..");
+
+// GLPI 11 bootstrap
+require_once $glpi_root . '/src/Glpi/Application/ResourcesChecker.php';
+(new \Glpi\Application\ResourcesChecker($glpi_root))->checkResources();
+
+require_once $glpi_root . '/vendor/autoload.php';
+
+$kernel = new \Glpi\Kernel\Kernel();
+$kernel->boot();
+
+if (!($DB instanceof DBmysql) || !$DB->connected) {
+   echo "ERROR: Database connection failed.\n";
+   exit(1);
+}
+
+if (!Config::isLegacyConfigurationLoaded()) {
+   echo "ERROR: Unable to load GLPI configuration.\n";
+   exit(1);
+}
 
 $processid      = date("zHi");
 $itemtype       = "Printer";
@@ -169,13 +187,17 @@ if (function_exists("pcntl_fork")) {
          $pids[$pid]=1;
 
       } else {
-         $cmd="php -q -d -f printercounters_fullsync.php --record_type=$record_type --sonprocess_nbr=$sonprocess_nbr ".
-              " --sonprocess_id=$i --itemtype=$itemtype --process_id=$processid";
+         $php_bin = PHP_BINARY;
+         $cmd="$php_bin -q -f printercounters_fullsync.php -- --record_type=$record_type --sonprocess_nbr=$sonprocess_nbr ".
+              " --sonprocess_id=$i --itemtype=$itemtype --process_id=$processid 2>&1";
 
          $out=[];
          exec($cmd, $out, $ret);
          foreach ($out as $line) {
             fwrite ($log, $line."\n");
+         }
+         if ($ret !== 0) {
+            fwrite($log, "Process $i exited with code $ret\n");
          }
          exit($ret);
       }
@@ -193,8 +215,9 @@ if (function_exists("pcntl_fork")) {
    }
 } else {
    // Windows - No fork, so Only one process :(
-   $cmd="php -q -d -f printercounters_fullsync.php --record_type=$record_type --sonprocess_nbr=1"
-         . " --sonprocess_id=1 --itemtype=$itemtype --process_id=$processid";
+   $php_bin = PHP_BINARY;
+   $cmd="$php_bin -q -f printercounters_fullsync.php -- --record_type=$record_type --sonprocess_nbr=1"
+         . " --sonprocess_id=1 --itemtype=$itemtype --process_id=$processid 2>&1";
 
    $out=[];
    exec($cmd, $out, $ret);

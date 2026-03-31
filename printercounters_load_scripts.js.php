@@ -1,11 +1,15 @@
 <?php
-use Glpi\Event;
+// Suppress PHP errors/warnings to avoid breaking JavaScript output
+@ini_set('display_errors', '0');
+ob_start();
 include('../../inc/includes.php');
+ob_end_clean();
 header('Content-Type: text/javascript');
 
+$webdir = defined('PLUGIN_PRINTERCOUNTERS_WEBDIR') ? PLUGIN_PRINTERCOUNTERS_WEBDIR : '';
 ?>
 
-var root_printercounters_doc = "<?php echo PLUGIN_PRINTERCOUNTERS_WEBDIR; ?>";
+var root_printercounters_doc = "<?php echo $webdir; ?>";
 (function ($) {
    $.fn.printercounters_load_scripts = function () {
 
@@ -13,7 +17,7 @@ var root_printercounters_doc = "<?php echo PLUGIN_PRINTERCOUNTERS_WEBDIR; ?>";
 
       // Start the plugin
       function init() {
-         //            $(document).ready(function () {
+         if (!root_printercounters_doc) return;
          // Send data
          $.ajax({
             url: root_printercounters_doc + '/ajax/loadscripts.php',
@@ -27,7 +31,6 @@ var root_printercounters_doc = "<?php echo PLUGIN_PRINTERCOUNTERS_WEBDIR; ?>";
                }
             }
          });
-         //            });
       }
 
       return this;

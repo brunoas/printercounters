@@ -293,7 +293,7 @@ class PluginPrintercountersCountertype_Recordmodel extends CommonDBTM {
              ON (`".$this->getTable()."`.`plugin_printercounters_countertypes_id` = `glpi_plugin_printercounters_countertypes`.`id`)
           WHERE `".$this->getTable()."`.`plugin_printercounters_recordmodels_id` = ".Toolbox::cleanInteger($recordmodels_id);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;
@@ -345,7 +345,7 @@ class PluginPrintercountersCountertype_Recordmodel extends CommonDBTM {
          $query .= " ORDER BY $order";
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[] = $data;
@@ -388,7 +388,7 @@ class PluginPrintercountersCountertype_Recordmodel extends CommonDBTM {
          $query .= "AND `".$itemjoin2."`.`serial_conformity` = '0'";
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          return $DB->result($result, 0, 'oid');
       }
@@ -438,7 +438,7 @@ class PluginPrintercountersCountertype_Recordmodel extends CommonDBTM {
          $query .= " ORDER BY $order";
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[] = $data;
@@ -462,7 +462,7 @@ class PluginPrintercountersCountertype_Recordmodel extends CommonDBTM {
                    WHERE `oid_type` = ". self::NAME ." 
                    AND `plugin_printercounters_recordmodels_id` = ".$options['plugin_printercounters_recordmodels_id'];
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             $options['used'][self::NAME] = self::NAME;
          }

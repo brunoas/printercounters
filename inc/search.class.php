@@ -686,7 +686,7 @@ class PluginPrintercountersSearch extends CommonDBTM
         }
 
         // Return results
-        $result = $DB->query($query);
+        $result = $DB->doQuery($query);
         $output = [];
         if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
@@ -1525,10 +1525,12 @@ class PluginPrintercountersSearch extends CommonDBTM
     static function initPrintercounterJS($params)
     {
 
-        Html::requireJs('printercounters');
-
         echo '<script type="text/javascript">';
-        echo 'var printercountersSearch = $(document).printercountersSearch(' . json_encode($params) . ');';
+        echo '$(document).ready(function() {';
+        echo '   if (typeof $.fn.printercountersSearch === "function") {';
+        echo '      window.printercountersSearch = $(document).printercountersSearch(' . json_encode($params) . ');';
+        echo '   }';
+        echo '});';
         echo '</script>';
     }
 

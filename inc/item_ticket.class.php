@@ -374,7 +374,7 @@ class PluginPrintercountersItem_Ticket extends CommonDBTM {
           ORDER BY `".$itemjoin2."`.`name`
           LIMIT ".intval($start).",".intval($_SESSION['glpilist_limit']);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;
@@ -492,7 +492,7 @@ class PluginPrintercountersItem_Ticket extends CommonDBTM {
                    WHERE `".$itemjoin2."`.`enable_automatic_record` = '1'
                    GROUP BY `".$itemjoin2."`.`items_id`";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                if (!isset($item_ticket_data[PluginPrintercountersItem_Ticket::$NB_RECORD_ERROR]) || !in_array($data['items_id'], $item_ticket_data[PluginPrintercountersItem_Ticket::$NB_RECORD_ERROR])) {
@@ -514,7 +514,7 @@ class PluginPrintercountersItem_Ticket extends CommonDBTM {
                    AND `".$itemjoin1."`.`record_type` != '".PluginPrintercountersRecord::$AUTOMATIC_TYPE."' 
                    GROUP BY `".$itemjoin2."`.`items_id`;";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                if ($data['bad_record_count'] >= $config_data['nb_errors_ticket']) {
@@ -587,7 +587,7 @@ class PluginPrintercountersItem_Ticket extends CommonDBTM {
                    GROUP BY `glpi_plugin_printercounters_items_recordmodels`.`items_id` 
                    HAVING `glpi_plugin_printercounters_records`.`date` = min(`glpi_plugin_printercounters_records`.`date`)";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                if (!isset($item_ticket_data[self::$NO_RECORD_DELAY]) || !in_array($data['items_id'], $item_ticket_data[self::$NO_RECORD_DELAY])) {
@@ -608,7 +608,7 @@ class PluginPrintercountersItem_Ticket extends CommonDBTM {
                       OR `".$itemjoin1."`.`record_type` = '".PluginPrintercountersRecord::$AUTOMATIC_TYPE."')
                    GROUP BY `".$itemjoin2."`.`items_id`;";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                $items_ok[$data['itemtype']][] = $data['items_id'];

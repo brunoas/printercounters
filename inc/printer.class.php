@@ -538,7 +538,7 @@ class PluginPrintercountersPrinter extends PluginPrintercountersCommonSNMPObject
           AND `".$dbu->getTableForItemType($itemjoin3)."`.`oid_type`!='".PluginPrintercountersCountertype_Recordmodel::NAME."' 
           AND `".$dbu->getTableForItemType($itemjoin3)."`.`oid_type`!='".PluginPrintercountersCountertype_Recordmodel::SYSDESCR."'";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['countertypes_recordmodels_id']] = $data['oid'];

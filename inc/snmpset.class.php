@@ -339,7 +339,7 @@ class PluginPrintercountersSnmpset extends CommonDBTM {
                 WHERE 1 $condition";
       //          LIMIT ".intval($start).",".intval($_SESSION['glpilist_limit']);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;

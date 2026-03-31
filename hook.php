@@ -34,7 +34,7 @@ function plugin_printercounters_install() {
 
    // SQL creation
    if (!$DB->tableExists("glpi_plugin_printercounters_records")) {
-      $DB->runFile(PLUGIN_PRINTERCOUNTERS_DIR. "/install/sql/empty-2.0.2.sql");
+      $DB->runFile(PLUGIN_PRINTERCOUNTERS_DIR. "/install/sql/empty-3.0.0.sql");
 
       // Add record notification
       include_once(PLUGIN_PRINTERCOUNTERS_DIR. "/inc/notificationtargetadditional_data.class.php");
@@ -97,7 +97,7 @@ function plugin_printercounters_install() {
 
    PluginPrintercountersProfile::createFirstAccess($_SESSION['glpiactiveprofile']['id']);
    PluginPrintercountersProfile::initProfile();
-   $DB->query("DROP TABLE IF EXISTS `glpi_plugin_printercounters_profiles`;");
+   $DB->doQuery("DROP TABLE IF EXISTS `glpi_plugin_printercounters_profiles`;");
 
    return true;
 }

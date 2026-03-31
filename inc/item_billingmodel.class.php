@@ -71,6 +71,10 @@ class PluginPrintercountersItem_Billingmodel extends CommonDBTM {
       return _n('Linked billing model', 'Linked billing models', $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-file-invoice-dollar";
+   }
+
    static function canUpdateRecords() {
       return Session::haveRight('update_records', 1);
    }
@@ -461,7 +465,7 @@ class PluginPrintercountersItem_Billingmodel extends CommonDBTM {
          $query .= " LIMIT ".intval($params['start']).",".intval($params['limit']);
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;
@@ -606,7 +610,7 @@ class PluginPrintercountersItem_Billingmodel extends CommonDBTM {
          $query .= " LIMIT ".intval($params['start']).",".intval($params['limit']);
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             // Manage group by
@@ -655,7 +659,7 @@ class PluginPrintercountersItem_Billingmodel extends CommonDBTM {
          $query .= " AND `".$itemjoin3."`.`items_id` = ".$items_id;
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['items_id']] = $data;

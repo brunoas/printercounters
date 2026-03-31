@@ -70,6 +70,10 @@ class PluginPrintercountersBudget extends CommonDropdown {
       return __("Budget");
    }
 
+   static function getIcon() {
+      return "fas fa-coins";
+   }
+
    /**
     * Function sets rand
     */
@@ -1054,7 +1058,7 @@ class PluginPrintercountersBudget extends CommonDropdown {
              ON (`".$this->getTable()."`.`entities_id` = `".$itemjoin."`.`id`)
           WHERE 1 $condition";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['budgets_id']] = $data;

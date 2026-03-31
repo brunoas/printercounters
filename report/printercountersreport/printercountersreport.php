@@ -118,7 +118,7 @@ $query = "SELECT `glpi_printers`.`id`,
           ".
           getOrderBy($_REQUEST['sort'], $columns);
 
-$res = $DB->query($query);
+$res = $DB->doQuery($query);
 $nbtot = ($res ? $DB->numrows($res) : 0);
 if ($limit) {
    $start = (isset($_GET["start"]) ? $_GET["start"] : 0);
@@ -126,7 +126,7 @@ if ($limit) {
       $start = 0;
    }
    if ($start > 0 || $start + $limit < $nbtot) {
-      $res = $DB->query($query." LIMIT $start,$limit");
+      $res = $DB->doQuery($query." LIMIT $start,$limit");
    }
 } else {
    $start = 0;

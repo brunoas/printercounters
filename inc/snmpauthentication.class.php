@@ -62,6 +62,10 @@ class PluginPrintercountersSnmpauthentication extends CommonDropdown {
       return _n("SNMP authentication", "SNMP authentications", $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-key";
+   }
+
    /**
     * Provides search options configuration. Do not rely directly
     * on this, @see CommonDBTM::searchOptions instead.
@@ -471,7 +475,7 @@ class PluginPrintercountersSnmpauthentication extends CommonDropdown {
              WHERE `".$dbu->getTableForItemType($itemjoin)."`.`items_id` IN ('".implode("','", $items_id)."')
              AND LOWER(`".$dbu->getTableForItemType($itemjoin)."`.`itemtype`)='".$itemtype."'";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                $output[$data['items_id']] = ['version'                 => $data['version'],

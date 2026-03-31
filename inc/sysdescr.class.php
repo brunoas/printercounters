@@ -254,7 +254,7 @@ class PluginPrintercountersSysdescr extends CommonDBTM {
           WHERE `".$this->getTable()."`.`plugin_printercounters_recordmodels_id` = ".Toolbox::cleanInteger($recordmodels_id)."
           LIMIT ".intval($start).",".intval($_SESSION['glpilist_limit']);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;

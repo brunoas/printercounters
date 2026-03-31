@@ -47,6 +47,10 @@ class PluginPrintercountersCountertype extends CommonDropdown {
       return _n("Counter type", "Counter types", $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-sort-numeric-up";
+   }
+
    /**
     * Provides search options configuration. Do not rely directly
     * on this, @see CommonDBTM::searchOptions instead.

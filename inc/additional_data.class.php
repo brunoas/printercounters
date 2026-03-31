@@ -250,7 +250,7 @@ class PluginPrintercountersAdditional_data extends CommonDBTM {
           AND `".$itemjoin2."`.`itemtype`='".$this->itemtype."'
           ORDER BY sub_type ASC";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          $colors = [PluginPrintercountersPrinter::CARTRIDGE_COLOR_BLACK,
                          PluginPrintercountersPrinter::CARTRIDGE_COLOR_CYAN,

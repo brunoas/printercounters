@@ -30,21 +30,29 @@
 ini_set("memory_limit", "-1");
 ini_set("max_execution_time", "0");
 
-// Can't run on MySQL replicate
-$USEDBREPLICATE = 0;
-$DBCONNECTION_REQUIRED = 1;
+// GLPI 11 bootstrap
+$glpi_root = realpath(__DIR__ . "/../../..");
 
+require_once $glpi_root . '/src/Glpi/Application/ResourcesChecker.php';
+(new \Glpi\Application\ResourcesChecker($glpi_root))->checkResources();
 
-include ('../../../inc/includes.php');
+require_once $glpi_root . '/vendor/autoload.php';
 
-// Check PHP Version - sometime (debian) cli version != module version
-if (version_compare(phpversion(), '5.4', 'lt')) {
-   die("PHP version:".phpversion()." - "."You must install at least PHP 5.4\n\n");
+$kernel = new \Glpi\Kernel\Kernel();
+$kernel->boot();
+
+if (!($DB instanceof DBmysql) || !$DB->connected) {
+   die("ERROR: Database connection failed.\n");
 }
-// Chech Memory_limit - sometine cli limit (php-cli.ini) != module limit (php.ini)
+
+if (!Config::isLegacyConfigurationLoaded()) {
+   die("ERROR: Unable to load GLPI configuration.\n");
+}
+
+// Check Memory_limit
 $mem = Toolbox::getMemoryLimit();
 if (($mem > 0) && ($mem < (64 * 1024 * 1024))) {
-   die("PHP memory_limit = ".$mem." - "."A minimum of 64Mio is commonly required for GLPI.'\n\n");
+   die("PHP memory_limit = ".$mem." - "."A minimum of 64Mio is commonly required for GLPI.\n\n");
 }
 
 if (Plugin::isPluginActive("printercounters")) {

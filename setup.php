@@ -27,7 +27,14 @@
  --------------------------------------------------------------------------
  */
 
-define('PLUGIN_PRINTERCOUNTERS_VERSION', '2.0.2');
+use Glpi\Plugin\Hooks;
+
+define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.0.0');
+
+// Minimal GLPI version, inclusive
+define('PLUGIN_PRINTERCOUNTERS_MIN_GLPI', '11.0.0');
+// Maximum GLPI version, exclusive
+define('PLUGIN_PRINTERCOUNTERS_MAX_GLPI', '11.0.99');
 
 if (!defined("PLUGIN_PRINTERCOUNTERS_DIR")) {
    define("PLUGIN_PRINTERCOUNTERS_DIR", Plugin::getPhpDir("printercounters"));
@@ -40,23 +47,14 @@ if (!defined("PLUGIN_PRINTERCOUNTERS_DIR")) {
 function plugin_init_printercounters() {
    global $PLUGIN_HOOKS, $CFG_GLPI;
 
-   $PLUGIN_HOOKS['csrf_compliant']['printercounters'] = true;
    $PLUGIN_HOOKS['change_profile']['printercounters'] = ['PluginPrintercountersProfile', 'changeProfile'];
 
    if (isset($_SESSION['glpiactiveprofile']['interface'])
        && $_SESSION['glpiactiveprofile']['interface'] == 'central') {
-      $PLUGIN_HOOKS['add_css']['printercounters']          = ['printercounters.css'];
-      $PLUGIN_HOOKS['add_javascript']['printercounters'][] = 'printercounters.js';
-      $PLUGIN_HOOKS['javascript']['printercounters'][]     = PLUGIN_PRINTERCOUNTERS_NOTFULL_DIR.'/printercounters.js';
+      $PLUGIN_HOOKS[Hooks::ADD_CSS]['printercounters']          = ['printercounters.css'];
+      $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['printercounters']   = ['printercounters.js'];
    }
    if (Session::getLoginUserID()) {
-      if (class_exists('PluginPrintercountersItem_Recordmodel')) {
-         foreach (PluginPrintercountersItem_Recordmodel::$types as $item) {
-            if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], strtolower($item)) !== false) {
-               $PLUGIN_HOOKS['add_javascript']['printercounters'][] = 'printercounters_load_scripts.js.php';
-            }
-         }
-      }
 
       // Add tabs
       Plugin::registerClass('PluginPrintercountersProfile', ['addtabon' => 'Profile']);
@@ -79,16 +77,13 @@ function plugin_init_printercounters() {
          $PLUGIN_HOOKS['plugin_datainjection_populate']['printercounters'] = 'plugin_datainjection_populate_printercounters';
 
          $PLUGIN_HOOKS['menu_toadd']['printercounters']          = ['tools' => 'PluginPrintercountersMenu'];
-//         $PLUGIN_HOOKS['helpdesk_menu_entry']['printercounters'] = true;
          if (Session::haveRight("plugin_printercounters", UPDATE)) {
             $PLUGIN_HOOKS['config_page']['printercounters'] = 'front/config.form.php';
          }
       }
 
-      $PLUGIN_HOOKS['post_init']['printercounters'] = 'plugin_printercounters_postinit';
-
       // Pre item purge
-      $PLUGIN_HOOKS['pre_item_purge']['printercounters'] = [
+      $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['printercounters'] = [
          'PluginPrintercountersRecordmodel'             => 'plugin_pre_item_purge_printercounters',
          'PluginPrintercountersBillingmodel'            => 'plugin_pre_item_purge_printercounters',
          'PluginPrintercountersCountertype'             => 'plugin_pre_item_purge_printercounters',
@@ -100,15 +95,15 @@ function plugin_init_printercounters() {
          'Entity'                                       => 'plugin_pre_item_purge_printercounters'];
 
       // Post item purge
-      $PLUGIN_HOOKS['item_purge']['printercounters'] = [
+      $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['printercounters'] = [
          'PluginPrintercountersCounter' => 'plugin_item_purge_printercounters'];
 
       // Pre item delete
-      $PLUGIN_HOOKS['pre_item_delete']['printercounters'] = [
+      $PLUGIN_HOOKS[Hooks::PRE_ITEM_DELETE]['printercounters'] = [
          'Printer' => 'plugin_item_delete_printercounters'];
 
       // Item transfer
-      $PLUGIN_HOOKS['item_transfer']['printercounters'] = 'plugin_item_transfer_printercounters';
+      $PLUGIN_HOOKS[Hooks::ITEM_TRANSFER]['printercounters'] = 'plugin_item_transfer_printercounters';
    }
 }
 
@@ -122,11 +117,11 @@ function plugin_version_printercounters() {
       'homepage'     => 'https://github.com/InfotelGLPI/printercounters',
       'requirements' => [
          'glpi' => [
-            'min' => '10.0',
-            'max' => '11.0',
-            'dev' => false
+            'min' => PLUGIN_PRINTERCOUNTERS_MIN_GLPI,
+            'max' => PLUGIN_PRINTERCOUNTERS_MAX_GLPI,
          ],
          'php' => [
+            'min' => '8.2',
             'exts' => ['snmp'],
          ]
       ]

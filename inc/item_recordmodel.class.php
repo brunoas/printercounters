@@ -76,6 +76,10 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
       return _n('Linked record model', 'Linked record models', $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-tachometer-alt";
+   }
+
    /**
     * Function sets itemtype id
     *
@@ -467,7 +471,7 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
          $query .= " LIMIT ".intval($params['start']).",".intval($params['limit']);
       }
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;
@@ -514,7 +518,7 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
              ON(`".$this->getTable()."`.`items_id` = `".$itemjoin2."`.`id`)
           WHERE `items_id` = ".$this->items_id. " AND `itemtype`='".$this->itemtype."';";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['id']] = $data;
@@ -1574,7 +1578,7 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
              WHERE `".$this->getTable()."`.`items_id` IN ('".implode("','", $items_id)."')
              AND LOWER(`".$this->getTable()."`.`itemtype`)=LOWER('".$itemtype."')";
 
-         $result = $DB->query($query);
+         $result = $DB->doQuery($query);
          if ($DB->numrows($result)) {
             while ($data = $DB->fetchAssoc($result)) {
                $output[$data['items_id']] = $data;
@@ -1595,8 +1599,11 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
    function setMutex(array $items_id, $process_id) {
       global $DB;
 
-      $DB->query("UPDATE ".$this->getTable()." 
-                  SET `active_mutex`='".date('Y-m-d H:i:s', time())."', `process_id`='".$process_id."'
+      // process_id column is unsigned, use 0 for non-process contexts
+      $safe_process_id = ($process_id !== null && $process_id >= 0) ? $process_id : 0;
+
+      $DB->doQuery("UPDATE ".$this->getTable()."
+                  SET `active_mutex`='".date('Y-m-d H:i:s', time())."', `process_id`='".$safe_process_id."'
                   WHERE `".$this->getTable()."`.`items_id` IN ('".implode("','", $items_id)."')
                   AND LOWER(`".$this->getTable()."`.`itemtype`)='".$this->itemtype."'");
 

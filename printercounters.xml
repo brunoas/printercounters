@@ -36,6 +36,10 @@ The plugin allows :
    </authors>
    <versions>
        <version>
+           <num>3.0.0</num>
+           <compatibility>~11.0</compatibility>
+       </version>
+       <version>
            <num>2.0.2</num>
            <compatibility>~10.0</compatibility>
            <download_url>https://github.com/InfotelGLPI/printercounters/releases/download/2.0.2/glpi-printercounters-2.0.2.tar.bz2</download_url>

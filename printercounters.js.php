@@ -27,24 +27,35 @@
  --------------------------------------------------------------------------
  */
 
-define('GLPI_ROOT', '../..');
+// Suppress PHP errors/warnings to avoid breaking JavaScript output
+@ini_set('display_errors', '0');
+ob_start();
+
+if (!defined('GLPI_ROOT')) {
+   define('GLPI_ROOT', '../..');
+}
 include (GLPI_ROOT."/inc/includes.php");
 
-//change mimetype
+// Discard any PHP output from includes (warnings, notices, etc.)
+ob_end_clean();
+
+// Set correct MIME type
 header("Content-type: application/javascript");
 
 //not executed in self-service interface & right verification
-if (Session::getCurrentInterface() == "central") {
+if (class_exists('Session') && Session::getCurrentInterface() == "central") {
    // Get item type
-   $itemtype = PluginPrintercountersItem_Recordmodel::$types;
+   if (class_exists('PluginPrintercountersItem_Recordmodel')) {
+      $itemtype = PluginPrintercountersItem_Recordmodel::$types;
 
-   if (!empty($itemtype)) {
-      $params = ['root_doc'   => PLUGIN_PRINTERCOUNTERS_WEBDIR,
-                 'itemtype'   => $itemtype[0],
-                 'itemToShow' => 'Infocom',
-                 'glpi_tab'   => 'Infocom$1',
-                 'lang'       => ['global_tco' => __('Global TCO', 'printercounters')]];
+      if (!empty($itemtype) && defined('PLUGIN_PRINTERCOUNTERS_WEBDIR')) {
+         $params = ['root_doc'   => PLUGIN_PRINTERCOUNTERS_WEBDIR,
+                    'itemtype'   => $itemtype[0],
+                    'itemToShow' => 'Infocom',
+                    'glpi_tab'   => 'Infocom$1',
+                    'lang'       => ['global_tco' => __('Global TCO', 'printercounters')]];
 
-      echo "printercounters_addelements(".json_encode($params).");";
+         echo "printercounters_addelements(".json_encode($params).");";
+      }
    }
 }

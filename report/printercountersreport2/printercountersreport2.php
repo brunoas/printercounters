@@ -89,7 +89,7 @@ $query = " SELECT `glpi_plugin_printercounters_items_recordmodels`.`id` as id,
            AND `glpi_plugin_printercounters_records`.`date` <= '".date('Y-m-d H:i:s')."'
            GROUP BY `glpi_plugin_printercounters_items_recordmodels`.`items_id`";
 
-$result = $DB->query($query);
+$result = $DB->doQuery($query);
 if ($DB->numrows($result)) {
    while ($data = $DB->fetchAssoc($result)) {
       $items_ok[$data['id']] = $data['id'];
@@ -128,7 +128,7 @@ if (!empty($items_ok)) {
 $query.= " GROUP BY `glpi_plugin_printercounters_items_recordmodels`.`items_id`".
           getOrderBy($_REQUEST['sort'], $columns);
 
-$res = $DB->query($query);
+$res = $DB->doQuery($query);
 $nbtot = ($res ? $DB->numrows($res) : 0);
 if ($limit) {
    $start = (isset($_GET["start"]) ? $_GET["start"] : 0);
@@ -136,7 +136,7 @@ if ($limit) {
       $start = 0;
    }
    if ($start > 0 || $start + $limit < $nbtot) {
-      $res = $DB->query($query." LIMIT $start,$limit");
+      $res = $DB->doQuery($query." LIMIT $start,$limit");
    }
 } else {
    $start = 0;

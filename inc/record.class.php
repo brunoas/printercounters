@@ -94,6 +94,10 @@ class PluginPrintercountersRecord extends CommonDBTM {
       return _n("Record", "Records", $nb, 'printercounters');
    }
 
+   static function getIcon() {
+      return "fas fa-clipboard-list";
+   }
+
    static function canUpdateRecords() {
       return Session::haveRight('plugin_printercounters_update_records', 1);
    }
@@ -234,10 +238,21 @@ class PluginPrintercountersRecord extends CommonDBTM {
    */
    static function initPrintercountersActionsJS() {
 
-      Html::requireJs('printercounters');
+      $params = ['root_doc'   => PLUGIN_PRINTERCOUNTERS_WEBDIR,
+                 'itemtype'   => 'Printer',
+                 'itemToShow' => 'Infocom',
+                 'glpi_tab'   => 'Infocom$1',
+                 'lang'       => ['global_tco' => __('Global TCO', 'printercounters')]];
 
       echo Html::scriptBlock('
-         var printercountersAction = $(document).printercountersAction();
+         $(document).ready(function() {
+            if (typeof $.fn.printercountersAction === "function") {
+               window.printercountersAction = $(document).printercountersAction();
+            }
+            if (typeof printercounters_addelements === "function") {
+               printercounters_addelements('.json_encode($params).');
+            }
+         });
          ');
 
    }
@@ -716,6 +731,15 @@ class PluginPrintercountersRecord extends CommonDBTM {
                                     $additional_datas = $init_search;
                                  }
 
+                                 // Get number of printed papers while SNMP session is open
+                                 $numberOfPrintedPapers = $printer->getNumberOfPrintedPapers();
+                                 if ($numberOfPrintedPapers !== false) {
+                                    $init_search['numberOfPrintedPapers'] = $numberOfPrintedPapers;
+                                    if (!empty($search_results)) {
+                                       $search_results[count($search_results) - 1]['numberOfPrintedPapers'] = $numberOfPrintedPapers;
+                                    }
+                                 }
+
                                  // Search specific oid
                               } else {
                                  foreach ($specific_oid as $oid) {
@@ -763,6 +787,15 @@ class PluginPrintercountersRecord extends CommonDBTM {
                         // Record sucessful
                      } else {
                         $this->setRecord($search_result_ok[0]['counters'], $search_result_ok[0]['record_result'], $search_result_ok[0]['record_type'], date('Y-m-d H:i:s'));
+
+                        // Update printer last_pages_counter
+                        if (isset($search_result_ok[0]['numberOfPrintedPapers']) && $search_result_ok[0]['numberOfPrintedPapers'] !== false) {
+                           $dbu = new DbUtils();
+                           $item = $dbu->getItemForItemtype($itemtype);
+                           if ($item && $item->getFromDB($printers_id)) {
+                              $item->update(['id' => $printers_id, 'last_pages_counter' => $search_result_ok[0]['numberOfPrintedPapers']]);
+                           }
+                        }
                      }
 
                   } else {
@@ -827,7 +860,7 @@ class PluginPrintercountersRecord extends CommonDBTM {
             $queryFirst = "SELECT min(`glpi_plugin_printercounters_records`.`date`) as min_date
                            FROM `glpi_plugin_printercounters_records`
                            GROUP BY  `glpi_plugin_printercounters_records`.`plugin_printercounters_items_recordmodels_id`";
-            $resultFirst = $DB->query($queryFirst);
+            $resultFirst = $DB->doQuery($queryFirst);
             if ($DB->numrows($resultFirst)) {
                while ($data = $DB->fetchAssoc($resultFirst)) {
                   $firstRecords[] = $data['min_date'];
@@ -849,7 +882,7 @@ class PluginPrintercountersRecord extends CommonDBTM {
       $query .= " GROUP BY  `glpi_plugin_printercounters_counters`.`plugin_printercounters_records_id`
                   HAVING SUM(`glpi_plugin_printercounters_counters`.`value`) = 0";
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             $output[$data['records_id']] = $data['records_id'];
@@ -1156,7 +1189,7 @@ class PluginPrintercountersRecord extends CommonDBTM {
 
       $itemtype = strtolower($itemtype);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          if ($items_id > 0) {
             while ($data = $DB->fetchAssoc($result)) {
@@ -1501,7 +1534,7 @@ class PluginPrintercountersRecord extends CommonDBTM {
              AND LOWER(`".$itemjoin2."`.`itemtype`) = LOWER('".$this->itemtype."'))
           WHERE `".$itemjoin."`.`id` = ".Toolbox::cleanInteger($this->items_id);
 
-      $result = $DB->query($query);
+      $result = $DB->doQuery($query);
       if ($DB->numrows($result)) {
          while ($data = $DB->fetchAssoc($result)) {
             return $data['tco'];
