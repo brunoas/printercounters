@@ -29,7 +29,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.2.1');
+define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.3.0');
 
 // Minimal GLPI version, inclusive
 define('PLUGIN_PRINTERCOUNTERS_MIN_GLPI', '11.0.0');
@@ -107,6 +107,11 @@ function plugin_init_printercounters() {
 
       // Correct cartridge yield calculation (per model) on Printer > Cartridges tab
       $PLUGIN_HOOKS[Hooks::POST_SHOW_TAB]['printercounters'] = 'plugin_printercounters_post_show_tab';
+
+      // Expected yield field on CartridgeItemType form
+      $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['printercounters'] = 'plugin_printercounters_post_item_form';
+      $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['printercounters']['CartridgeItemType'] = 'plugin_printercounters_cartridgeitemtype_update';
+      $PLUGIN_HOOKS[Hooks::ITEM_ADD]['printercounters']['CartridgeItemType'] = 'plugin_printercounters_cartridgeitemtype_add';
    }
 }
 

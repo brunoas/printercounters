@@ -54,6 +54,7 @@ class PluginPrintercountersCartridge_Yield {
       }
 
       self::injectCorrectionScript($yields);
+      self::injectSummaryTable($printers_id, $printer->fields['init_pages_counter']);
    }
 
    /**
@@ -103,6 +104,148 @@ class PluginPrintercountersCartridge_Yield {
       }
 
       return $yields;
+   }
+
+   /**
+    * Get yield summary grouped by cartridge type for a printer.
+    *
+    * Groups by cartridgeitemtypes_id when set, falls back to cartridgeitems_id.
+    * Uses the same type-aware yield calculation as getYieldsByModel().
+    *
+    * @param int $printers_id  Printer ID
+    * @param int $init_pages   Printer's init_pages_counter
+    * @return array  [group_id => ['name' => ..., 'count' => ..., 'total' => ..., 'avg' => ..., 'expected' => ...], ...]
+    */
+   static function getSummaryByModel($printers_id, $init_pages = 0) {
+      global $DB;
+
+      $result = $DB->doQuery("
+         SELECT
+            CASE WHEN ci.cartridgeitemtypes_id > 0 THEN ci.cartridgeitemtypes_id ELSE ci.id END AS group_id,
+            CASE WHEN ci.cartridgeitemtypes_id > 0 THEN cit.name ELSE ci.name END AS group_name,
+            ci.cartridgeitemtypes_id,
+            COUNT(c.id) AS cartridge_count,
+            SUM(
+               GREATEST(0, c.pages - COALESCE(
+                  (SELECT c2.pages
+                   FROM glpi_cartridges c2
+                   JOIN glpi_cartridgeitems ci2 ON ci2.id = c2.cartridgeitems_id
+                   WHERE c2.printers_id = c.printers_id
+                     AND c2.date_out IS NOT NULL
+                     AND (c2.date_out < c.date_out OR (c2.date_out = c.date_out AND c2.id < c.id))
+                     AND (
+                        (ci.cartridgeitemtypes_id > 0 AND ci2.cartridgeitemtypes_id = ci.cartridgeitemtypes_id)
+                        OR (ci.cartridgeitemtypes_id = 0 AND c2.cartridgeitems_id = c.cartridgeitems_id)
+                     )
+                   ORDER BY c2.date_out DESC, c2.id DESC
+                   LIMIT 1),
+                  " . (int)$init_pages . "
+               ))
+            ) AS total_printed
+         FROM glpi_cartridges c
+         JOIN glpi_cartridgeitems ci ON ci.id = c.cartridgeitems_id
+         LEFT JOIN glpi_cartridgeitemtypes cit ON cit.id = ci.cartridgeitemtypes_id
+         WHERE c.printers_id = " . (int)$printers_id . "
+           AND c.date_out IS NOT NULL
+         GROUP BY group_id, group_name, ci.cartridgeitemtypes_id
+         ORDER BY group_name
+      ");
+
+      $summary = [];
+      $type_ids = [];
+      while ($data = $result->fetch_assoc()) {
+         $gid = (int)$data['group_id'];
+         $has_type = ((int)$data['cartridgeitemtypes_id'] > 0);
+         $count = (int)$data['cartridge_count'];
+         $total = (int)$data['total_printed'];
+         $summary[$gid] = [
+            'name'     => $data['group_name'],
+            'count'    => $count,
+            'total'    => $total,
+            'avg'      => ($count > 0) ? round($total / $count) : 0,
+            'expected' => 0,
+            'is_type'  => $has_type,
+         ];
+         if ($has_type) {
+            $type_ids[] = $gid;
+         }
+      }
+
+      if (!empty($type_ids)) {
+         $expected = PluginPrintercountersExpected_Yield::getForCartridgeItemTypes($type_ids);
+         foreach ($expected as $tid => $value) {
+            if (isset($summary[$tid])) {
+               $summary[$tid]['expected'] = $value;
+            }
+         }
+      }
+
+      return $summary;
+   }
+
+   /**
+    * Inject the summary table HTML after the worn cartridges table.
+    */
+   static function injectSummaryTable($printers_id, $init_pages = 0) {
+      $summary = self::getSummaryByModel($printers_id, $init_pages);
+
+      if (empty($summary)) {
+         return;
+      }
+
+      $header_type     = __('Cartridge model', 'printercounters');
+      $header_expected = __('Expected yield (ISO 5%)', 'printercounters');
+      $header_total    = __('Total printed', 'printercounters');
+      $header_avg      = __('Average per cartridge', 'printercounters');
+      $header_coverage = __('Actual coverage (%)', 'printercounters');
+      $title           = __('Yield summary by cartridge model', 'printercounters');
+
+      $rows = '';
+      foreach ($summary as $data) {
+         $expected_str = ($data['expected'] > 0) ? number_format($data['expected'], 0, ',', '.') : '&mdash;';
+         $total_str    = number_format($data['total'], 0, ',', '.');
+         $avg_str      = number_format($data['avg'], 0, ',', '.');
+
+         if ($data['expected'] > 0 && $data['avg'] > 0) {
+            $coverage = ($data['expected'] / $data['avg']) * 5.0;
+            $coverage_str = number_format($coverage, 2, ',', '.') . '%';
+         } else {
+            $coverage_str = '&mdash;';
+         }
+
+         $name = htmlspecialchars($data['name']);
+         $count_str = ' (' . $data['count'] . ')';
+
+         $rows .= "<tr>";
+         $rows .= "<td>{$name}{$count_str}</td>";
+         $rows .= "<td class=\"text-end\">{$expected_str}</td>";
+         $rows .= "<td class=\"text-end\">{$total_str}</td>";
+         $rows .= "<td class=\"text-end\">{$avg_str}</td>";
+         $rows .= "<td class=\"text-end\">{$coverage_str}</td>";
+         $rows .= "</tr>";
+      }
+
+      echo <<<HTML
+<div class="mt-3">
+   <table class="table table-hover">
+      <thead>
+         <tr>
+            <th colspan="5" class="text-center"><strong>{$title}</strong></th>
+         </tr>
+         <tr>
+            <th>{$header_type}</th>
+            <th class="text-end">{$header_expected}</th>
+            <th class="text-end">{$header_total}</th>
+            <th class="text-end">{$header_avg}</th>
+            <th class="text-end">{$header_coverage}</th>
+         </tr>
+      </thead>
+      <tbody>
+         {$rows}
+      </tbody>
+   </table>
+</div>
+HTML;
    }
 
    /**

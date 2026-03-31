@@ -92,6 +92,9 @@ function plugin_printercounters_install() {
         $DB->runFile(PLUGIN_PRINTERCOUNTERS_DIR. "/install/sql/update-2.0.2.sql");
     }
 
+   // Expected yields table
+   PluginPrintercountersExpected_Yield::install();
+
    CronTask::Register('PluginPrintercountersItem_Ticket', 'PrintercountersCreateTicket', DAY_TIMESTAMP);
    CronTask::Register('PluginPrintercountersErrorItem', 'PluginPrintercountersErrorItem', DAY_TIMESTAMP);
 
@@ -122,7 +125,8 @@ function plugin_printercounters_uninstall() {
                    "glpi_plugin_printercounters_items_billingmodels",
                    "glpi_plugin_printercounters_sysdescrs",
                    "glpi_plugin_printercounters_additionals_datas",
-                   "glpi_plugin_printercounters_snmpsets"];
+                   "glpi_plugin_printercounters_snmpsets",
+                   "glpi_plugin_printercounters_expected_yields"];
 
    foreach ($tables as $table) {
       $DB->dropTable($table);
@@ -274,6 +278,21 @@ function plugin_item_delete_printercounters($item) {
 // Hook: correct cartridge yield display (per model) on Printer > Cartridges tab
 function plugin_printercounters_post_show_tab($params) {
    PluginPrintercountersCartridge_Yield::postShowTab($params);
+}
+
+// Hook: show expected yield field on CartridgeItemType form
+function plugin_printercounters_post_item_form($params) {
+   PluginPrintercountersExpected_Yield::postItemForm($params);
+}
+
+// Hook: save expected yield on CartridgeItemType update
+function plugin_printercounters_cartridgeitemtype_update($item) {
+   PluginPrintercountersExpected_Yield::preItemUpdate($item);
+}
+
+// Hook: save expected yield on CartridgeItemType add
+function plugin_printercounters_cartridgeitemtype_add($item) {
+   PluginPrintercountersExpected_Yield::itemAdd($item);
 }
 
 // Hook done on transfer item case
