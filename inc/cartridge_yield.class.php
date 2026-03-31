@@ -57,11 +57,12 @@ class PluginPrintercountersCartridge_Yield {
    }
 
    /**
-    * Calculate per-model yield for each worn cartridge of a printer.
+    * Calculate per-type yield for each worn cartridge of a printer.
     *
-    * For each cartridge, finds the previous cartridge of the same model
-    * (cartridgeitems_id) and computes: yield = pages - prev_same_model_pages.
-    * If no previous same-model cartridge exists, uses init_pages_counter.
+    * For each cartridge, finds the previous cartridge of the same type
+    * (cartridgeitemtypes_id) and computes: yield = pages - prev_same_type_pages.
+    * If cartridgeitemtypes_id is 0 (unset), falls back to grouping by cartridgeitems_id.
+    * If no previous same-type cartridge exists, uses init_pages_counter.
     *
     * @param int $printers_id      Printer ID
     * @param int $init_pages       Printer's init_pages_counter
@@ -77,15 +78,20 @@ class PluginPrintercountersCartridge_Yield {
             c.pages - COALESCE(
                (SELECT c2.pages
                 FROM glpi_cartridges c2
+                JOIN glpi_cartridgeitems ci2 ON ci2.id = c2.cartridgeitems_id
                 WHERE c2.printers_id = c.printers_id
-                  AND c2.cartridgeitems_id = c.cartridgeitems_id
                   AND c2.date_out IS NOT NULL
                   AND (c2.date_out < c.date_out OR (c2.date_out = c.date_out AND c2.id < c.id))
+                  AND (
+                     (ci.cartridgeitemtypes_id > 0 AND ci2.cartridgeitemtypes_id = ci.cartridgeitemtypes_id)
+                     OR (ci.cartridgeitemtypes_id = 0 AND c2.cartridgeitems_id = c.cartridgeitems_id)
+                  )
                 ORDER BY c2.date_out DESC, c2.id DESC
                 LIMIT 1),
                " . (int)$init_pages . "
             ) AS yield_by_model
          FROM glpi_cartridges c
+         JOIN glpi_cartridgeitems ci ON ci.id = c.cartridgeitems_id
          WHERE c.printers_id = " . (int)$printers_id . "
            AND c.date_out IS NOT NULL
       ");

@@ -29,7 +29,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.1.0');
+define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.2.1');
 
 // Minimal GLPI version, inclusive
 define('PLUGIN_PRINTERCOUNTERS_MIN_GLPI', '11.0.0');
