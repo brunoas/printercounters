@@ -34,6 +34,16 @@ class PluginPrintercountersExpected_Yield {
 
    static $table = 'glpi_plugin_printercounters_expected_yields';
 
+   /** Available SNMP color values (RFC 1759 prtMarkerColorantValue). */
+   static $snmp_colors = [
+      ''        => '---',
+      'black'   => 'Black',
+      'cyan'    => 'Cyan',
+      'magenta' => 'Magenta',
+      'yellow'  => 'Yellow',
+      'other'   => 'Other',
+   ];
+
    /**
     * POST_ITEM_FORM hook handler.
     * Adds "Expected Yield (ISO 5%)" field to CartridgeItemType form.
@@ -50,12 +60,16 @@ class PluginPrintercountersExpected_Yield {
          return;
       }
 
-      $value = self::getForCartridgeItemType($cartridgeitemtypes_id);
+      $data = self::getFullForCartridgeItemType($cartridgeitemtypes_id);
+      $value = (int)$data['expected_yield'];
+      $current_color = $data['snmp_color'] ?? '';
       $readonly = !Session::haveRight('cartridge', UPDATE);
       $disabled = $readonly ? 'disabled' : '';
       $rand = mt_rand();
-      $id = 'expected_yield_' . $rand;
-      $label = __('Expected yield (ISO 5%)', 'printercounters');
+      $id_yield = 'expected_yield_' . $rand;
+      $id_color = 'snmp_color_' . $rand;
+      $label_yield = __('Expected yield (ISO 5%)', 'printercounters');
+      $label_color = __('SNMP color', 'printercounters');
 
       echo '<div id="yeldformtable">';
       echo '<div class="card-body d-flex flex-wrap">';
@@ -63,12 +77,28 @@ class PluginPrintercountersExpected_Yield {
       echo '<div class="d-flex flex-row flex-wrap flex-xl-nowrap">';
       echo '<div class="row flex-row align-items-start flex-grow-1" style="min-width: 0;">';
       echo '<div class="row flex-row">';
+
+      // Expected yield field
       echo '<div class="form-field row align-items-center col-12 col-sm-6 mb-2">';
-      echo '<label class="col-form-label col-xxl-5 text-xxl-end" for="' . $id . '">' . $label . '</label>';
+      echo '<label class="col-form-label col-xxl-5 text-xxl-end" for="' . $id_yield . '">' . $label_yield . '</label>';
       echo '<div class="col-xxl-7 field-container">';
-      echo '<input type="number" id="' . $id . '" class="form-control "' . $disabled . ' name="expected_yield" min="0" step="1" value="' . (int)$value . '">';
+      echo '<input type="number" id="' . $id_yield . '" class="form-control "' . $disabled . ' name="expected_yield" min="0" step="1" value="' . $value . '">';
       echo '</div>';
       echo '</div>';
+
+      // SNMP color dropdown
+      echo '<div class="form-field row align-items-center col-12 col-sm-6 mb-2">';
+      echo '<label class="col-form-label col-xxl-5 text-xxl-end" for="' . $id_color . '">' . $label_color . '</label>';
+      echo '<div class="col-xxl-7 field-container">';
+      echo '<select id="' . $id_color . '" class="form-select" ' . $disabled . ' name="snmp_color">';
+      foreach (self::$snmp_colors as $key => $label_text) {
+         $selected = ($key === $current_color) ? ' selected' : '';
+         echo '<option value="' . htmlspecialchars($key) . '"' . $selected . '>' . htmlspecialchars($label_text) . '</option>';
+      }
+      echo '</select>';
+      echo '</div>';
+      echo '</div>';
+
       echo '</div>';
       echo '</div>';
       echo '</div>';
@@ -78,26 +108,34 @@ class PluginPrintercountersExpected_Yield {
    }
 
    /**
-    * Hook handler for CartridgeItemType update — saves expected_yield.
+    * Hook handler for CartridgeItemType update — saves expected_yield and snmp_color.
     */
    static function preItemUpdate($item) {
       if (!($item instanceof CartridgeItemType)) {
          return;
       }
-      if (isset($_POST['expected_yield'])) {
-         self::save($item->getID(), (int)$_POST['expected_yield']);
+      if (isset($_POST['expected_yield']) || isset($_POST['snmp_color'])) {
+         self::save(
+            $item->getID(),
+            (int)($_POST['expected_yield'] ?? 0),
+            $_POST['snmp_color'] ?? ''
+         );
       }
    }
 
    /**
-    * Hook handler for CartridgeItemType add — saves expected_yield.
+    * Hook handler for CartridgeItemType add — saves expected_yield and snmp_color.
     */
    static function itemAdd($item) {
       if (!($item instanceof CartridgeItemType)) {
          return;
       }
-      if (isset($_POST['expected_yield'])) {
-         self::save($item->getID(), (int)$_POST['expected_yield']);
+      if (isset($_POST['expected_yield']) || isset($_POST['snmp_color'])) {
+         self::save(
+            $item->getID(),
+            (int)($_POST['expected_yield'] ?? 0),
+            $_POST['snmp_color'] ?? ''
+         );
       }
    }
 
@@ -105,17 +143,28 @@ class PluginPrintercountersExpected_Yield {
     * Get expected yield for a single cartridge item type.
     */
    static function getForCartridgeItemType($cartridgeitemtypes_id) {
+      $data = self::getFullForCartridgeItemType($cartridgeitemtypes_id);
+      return (int)$data['expected_yield'];
+   }
+
+   /**
+    * Get full record (expected_yield + snmp_color) for a cartridge item type.
+    */
+   static function getFullForCartridgeItemType($cartridgeitemtypes_id) {
       global $DB;
 
       $result = $DB->doQuery(
-         "SELECT expected_yield FROM " . self::$table .
+         "SELECT expected_yield, snmp_color FROM " . self::$table .
          " WHERE cartridgeitemtypes_id = " . (int)$cartridgeitemtypes_id
       );
 
       if ($result && $data = $result->fetch_assoc()) {
-         return (int)$data['expected_yield'];
+         return [
+            'expected_yield' => (int)$data['expected_yield'],
+            'snmp_color'     => $data['snmp_color'] ?? '',
+         ];
       }
-      return 0;
+      return ['expected_yield' => 0, 'snmp_color' => ''];
    }
 
    /**
@@ -145,28 +194,59 @@ class PluginPrintercountersExpected_Yield {
    }
 
    /**
-    * Save expected yield for a cartridge item type (insert or update).
+    * Get snmp_color mapped by cartridgeitemtypes_id.
+    *
+    * @param array $cartridgeitemtypes_ids
+    * @return array  [cartridgeitemtypes_id => snmp_color, ...]
     */
-   static function save($cartridgeitemtypes_id, $expected_yield) {
+   static function getColorsByCartridgeItemTypes($cartridgeitemtypes_ids) {
+      global $DB;
+
+      if (empty($cartridgeitemtypes_ids)) {
+         return [];
+      }
+
+      $ids = array_map('intval', $cartridgeitemtypes_ids);
+      $result = $DB->doQuery(
+         "SELECT cartridgeitemtypes_id, snmp_color FROM " . self::$table .
+         " WHERE cartridgeitemtypes_id IN (" . implode(',', $ids) . ")" .
+         " AND snmp_color != ''"
+      );
+
+      $colors = [];
+      while ($data = $result->fetch_assoc()) {
+         $colors[(int)$data['cartridgeitemtypes_id']] = $data['snmp_color'];
+      }
+      return $colors;
+   }
+
+   /**
+    * Save expected yield and snmp_color for a cartridge item type (insert or update).
+    */
+   static function save($cartridgeitemtypes_id, $expected_yield, $snmp_color = '') {
       global $DB;
 
       $cartridgeitemtypes_id = (int)$cartridgeitemtypes_id;
       $expected_yield = (int)$expected_yield;
+      $snmp_color = isset(self::$snmp_colors[$snmp_color]) ? $snmp_color : '';
 
       if ($cartridgeitemtypes_id <= 0) {
          return;
       }
 
+      $safe_color = $DB->escape($snmp_color);
+
       if (self::existsForCartridgeItemType($cartridgeitemtypes_id)) {
          $DB->doQuery(
             "UPDATE " . self::$table .
-            " SET expected_yield = $expected_yield" .
+            " SET expected_yield = $expected_yield, snmp_color = '$safe_color'" .
             " WHERE cartridgeitemtypes_id = $cartridgeitemtypes_id"
          );
       } else {
          $DB->doQuery(
             "INSERT INTO " . self::$table .
-            " (cartridgeitemtypes_id, expected_yield) VALUES ($cartridgeitemtypes_id, $expected_yield)"
+            " (cartridgeitemtypes_id, expected_yield, snmp_color)" .
+            " VALUES ($cartridgeitemtypes_id, $expected_yield, '$safe_color')"
          );
       }
    }
@@ -196,6 +276,7 @@ class PluginPrintercountersExpected_Yield {
                `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
                `cartridgeitemtypes_id` INT(10) UNSIGNED NOT NULL,
                `expected_yield` INT(11) NOT NULL DEFAULT 0,
+               `snmp_color` VARCHAR(50) NOT NULL DEFAULT '',
                PRIMARY KEY (`id`),
                UNIQUE KEY `cartridgeitemtypes_id` (`cartridgeitemtypes_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -211,6 +292,15 @@ class PluginPrintercountersExpected_Yield {
             CHANGE `cartridgeitems_id` `cartridgeitemtypes_id` INT(10) UNSIGNED NOT NULL,
             DROP INDEX `cartridgeitems_id`,
             ADD UNIQUE KEY `cartridgeitemtypes_id` (`cartridgeitemtypes_id`)
+         ");
+      }
+
+      // Migration: add snmp_color column if missing
+      if ($DB->tableExists(self::$table)
+          && !$DB->fieldExists(self::$table, 'snmp_color')) {
+         $DB->doQuery("
+            ALTER TABLE `" . self::$table . "`
+            ADD `snmp_color` VARCHAR(50) NOT NULL DEFAULT ''
          ");
       }
    }

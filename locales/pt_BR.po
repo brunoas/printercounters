@@ -1033,3 +1033,55 @@ msgstr "Adicionar nova Sysdescr"
 #: scripts/clean_records.php:61 scripts/printercounters_fullsync.php:87
 msgid "Plugin disabled or automatic record disabled"
 msgstr "Plugin desabilitado ou registro automático desativado"
+
+#: inc/expected_yield.class.php:58 inc/cartridge_yield.class.php:197
+msgid "Expected yield (ISO 5%)"
+msgstr "Rendimento esperado (ISO 5%)"
+
+#: inc/cartridge_yield.class.php:198
+msgid "Total printed"
+msgstr "Total impresso"
+
+#: inc/cartridge_yield.class.php:199
+msgid "Average per cartridge"
+msgstr "Média por cartucho"
+
+#: inc/cartridge_yield.class.php:200
+msgid "Actual coverage (%)"
+msgstr "Cobertura real (%)"
+
+#: inc/cartridge_yield.class.php:201
+msgid "Yield summary by cartridge model"
+msgstr "Resumo de rendimento por modelo de cartucho"
+
+#: inc/cartridge_yield.class.php:288
+msgid "Coverage (%)"
+msgstr "Cobertura (%)"
+
+#: inc/expected_yield.class.php:68
+msgid "SNMP color"
+msgstr "Cor SNMP"
+
+#: inc/cartridge_yield.class.php:466
+msgid "Printer counter"
+msgstr "Contador da impressora"
+
+#: inc/cartridge_yield.class.php:467
+msgid "Consumed (%)"
+msgstr "Consumido (%)"
+
+#: inc/cartridge_yield.class.php:468
+msgid "Printed pages"
+msgstr "Páginas impressas"
+
+#: inc/cartridge_yield.class.php:469
+msgid "Est. coverage (%)"
+msgstr "Cobertura (%)"
+
+#: inc/cartridge_yield.class.php:470
+msgid "Est. remaining pages"
+msgstr "Páginas restantes est."
+
+#: inc/cartridge_yield.class.php:471
+msgid "Est. end date"
+msgstr "Previsão Fim de Vida"
