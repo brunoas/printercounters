@@ -1066,3 +1066,23 @@ msgstr ""
 #: inc/cartridge_yield.class.php:471
 msgid "Est. end date"
 msgstr ""
+
+#: inc/item_recordmodel.class.php:878
+msgid "Toner remaining (%)"
+msgstr ""
+
+#: inc/expected_yield.class.php:45
+msgid "Black"
+msgstr ""
+
+#: inc/expected_yield.class.php:46
+msgid "Cyan"
+msgstr ""
+
+#: inc/expected_yield.class.php:47
+msgid "Magenta"
+msgstr ""
+
+#: inc/expected_yield.class.php:48
+msgid "Yellow"
+msgstr ""

@@ -770,12 +770,14 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
       $tab[6091]['table']          = 'glpi_plugin_printercounters_records';
       $tab[6091]['field']          = 'date';
       $tab[6091]['name']           = __('Printercounters', 'printercounters').' - '.__('Last record date', 'printercounters');
-      $tab[6091]['datatype']       = 'datetime';
+      $tab[6091]['datatype']       = 'specific';
+      $tab[6091]['searchtype']     = 'contains';
       $tab[6091]['forcegroupby']   = true;
       $tab[6091]['massiveaction']  = false;
+      $tab[6091]['computation']    = "CONCAT(TABLE.`date`, '||', TABLE.`record_type`)";
       $tab[6091]['joinparams']     = ['jointype'   => 'child',
-                                           'condition'  => "AND NEWTABLE.`date` = (SELECT max(`glpi_plugin_printercounters_records`.`date`) 
-                                                                                   FROM glpi_plugin_printercounters_records 
+                                           'condition'  => "AND NEWTABLE.`date` = (SELECT max(`glpi_plugin_printercounters_records`.`date`)
+                                                                                   FROM glpi_plugin_printercounters_records
                                                                                    WHERE `glpi_plugin_printercounters_records`.`plugin_printercounters_items_recordmodels_id` = REFTABLE.`id`) ",
                                            'beforejoin'
                                             => ['table'      => 'glpi_plugin_printercounters_items_recordmodels',
@@ -869,7 +871,364 @@ class PluginPrintercountersItem_Recordmodel extends CommonDBTM {
                                            'beforejoin' => ['table' => $dbu->getTableForItemType($this->itemtype)]
                                     ];
 
+      $irmJoin = ['jointype'   => 'itemtype_item',
+                  'beforejoin' => ['table' => $dbu->getTableForItemType($this->itemtype)]];
+
+      // Toner remaining (%)
+      $tab[6110]['table']          = 'glpi_plugin_printercounters_items_recordmodels';
+      $tab[6110]['field']          = 'toner_remaining';
+      $tab[6110]['name']           = __('Printercounters', 'printercounters').' - '.__('Toner remaining (%)', 'printercounters');
+      $tab[6110]['datatype']       = 'specific';
+      $tab[6110]['nosearch']       = true;
+      $tab[6110]['nosort']         = true;
+      $tab[6110]['massiveaction']  = false;
+      $tab[6110]['forcegroupby']   = true;
+      $tab[6110]['joinparams']     = $irmJoin;
+      $tab[6110]['computation']    =
+         "(SELECT GROUP_CONCAT(CONCAT(ad.sub_type, ':', ad.value) ORDER BY ad.sub_type SEPARATOR '|')
+           FROM glpi_plugin_printercounters_additionals_datas ad
+           WHERE ad.plugin_printercounters_items_recordmodels_id = TABLE.id
+             AND ad.type = 'toner')";
+
+      // Est. end date
+      $tab[6111]['table']          = 'glpi_plugin_printercounters_items_recordmodels';
+      $tab[6111]['field']          = 'est_end_date';
+      $tab[6111]['name']           = __('Printercounters', 'printercounters').' - '.__('Est. end date', 'printercounters');
+      $tab[6111]['datatype']       = 'specific';
+      $tab[6111]['nosearch']       = true;
+      $tab[6111]['nosort']         = true;
+      $tab[6111]['massiveaction']  = false;
+      $tab[6111]['forcegroupby']   = true;
+      $tab[6111]['joinparams']     = $irmJoin;
+      $tab[6111]['computation']    = "TABLE.items_id";
+
+      // Toner coverage (%)
+      $tab[6112]['table']          = 'glpi_plugin_printercounters_items_recordmodels';
+      $tab[6112]['field']          = 'toner_coverage';
+      $tab[6112]['name']           = __('Printercounters', 'printercounters').' - '.__('Coverage (%)', 'printercounters');
+      $tab[6112]['datatype']       = 'specific';
+      $tab[6112]['nosearch']       = true;
+      $tab[6112]['nosort']         = true;
+      $tab[6112]['massiveaction']  = false;
+      $tab[6112]['forcegroupby']   = true;
+      $tab[6112]['joinparams']     = $irmJoin;
+      $tab[6112]['computation']    = "TABLE.items_id";
+
       return $tab;
+   }
+
+   /** Cache for per-printer toner/cartridge data used by search columns. */
+   static $searchDataCache = [];
+
+   /**
+    * Render custom search columns for toner remaining, end date, and coverage.
+    */
+   static function getSpecificValueToDisplay($field, $values, array $options = []) {
+      global $CFG_GLPI;
+
+      if (!is_array($values)) {
+         $values = [$field => $values];
+      }
+      $val = $values[$field] ?? '';
+
+      switch ($field) {
+         case 'toner_remaining':
+            return self::renderTonerRemaining($val);
+
+         case 'est_end_date':
+            return self::renderEstEndDate((int)$val);
+
+         case 'toner_coverage':
+            return self::renderTonerCoverage((int)$val);
+      }
+
+      return parent::getSpecificValueToDisplay($field, $values, $options);
+   }
+
+   /**
+    * Render last record date, colored in critical when record_type is an error state.
+    * Input format from computation: "YYYY-MM-DD HH:MM:SS||record_type"
+    */
+   static function renderLastRecordDate($raw) {
+      global $CFG_GLPI;
+
+      if (empty($raw)) {
+         return '&mdash;';
+      }
+
+      $parts = explode('||', $raw, 2);
+      $date = $parts[0] ?? '';
+      $record_type = (int)($parts[1] ?? 0);
+
+      if (empty($date)) {
+         return '&mdash;';
+      }
+
+      // record_type 1 = Host error, 2 = Record error
+      $isError = ($record_type === 1 || $record_type === 2);
+
+      $formatted = Html::convDateTime($date);
+
+      if ($isError) {
+         $colorCritical = $CFG_GLPI['priority_6'] ?? '#ff0000';
+         return "<span style=\"color:{$colorCritical}\">{$formatted}</span>";
+      }
+
+      return $formatted;
+   }
+
+   /**
+    * Render toner remaining column from GROUP_CONCAT value.
+    * Format: "sub_type:value|sub_type:value|..."
+    */
+   static function renderTonerRemaining($raw) {
+      global $CFG_GLPI;
+      if (empty($raw)) {
+         return '&mdash;';
+      }
+
+      $colorCritical = $CFG_GLPI['priority_6'] ?? '#ff0000';
+      $colorVHigh = $CFG_GLPI['priority_5'] ?? '#ff5555';
+      $snmpColors = ['black', 'cyan', 'magenta', 'yellow'];
+      $order = self::$colorOrder;
+
+      $parts = explode('|', $raw);
+      $items = [];
+      foreach ($parts as $part) {
+         $kv = explode(':', $part, 2);
+         if (count($kv) !== 2) continue;
+         $sub_type = trim($kv[0]);
+         $value = (int)$kv[1];
+
+         // Match SNMP color key
+         $matched_key = '';
+         foreach ($snmpColors as $c) {
+            if (stripos($sub_type, $c) !== false) {
+               $matched_key = $c;
+               break;
+            }
+         }
+
+         $remaining = $value;
+         if ($remaining <= 5) {
+            $style = "color:{$colorCritical}";
+         } elseif ($remaining <= 20) {
+            $style = "color:{$colorVHigh}";
+         } else {
+            $style = "color:rgb(var(--tblr-primary-rgb))";
+         }
+
+         $items[] = [
+            'style'       => $style,
+            'value'       => $remaining,
+            'color_key'   => $matched_key,
+            'color_label' => $matched_key
+               ? PluginPrintercountersExpected_Yield::getColorLabel($matched_key)
+               : '',
+            'sort_order'  => $order[$matched_key] ?? 99,
+         ];
+      }
+
+      // Sort by canonical color order
+      usort($items, function ($a, $b) {
+         return $a['sort_order'] - $b['sort_order'];
+      });
+
+      $multi = count($items) > 1;
+      $html = [];
+      foreach ($items as $item) {
+         $text = $item['value'] . '%';
+         if ($multi && $item['color_label']) {
+            $text .= ' (' . htmlspecialchars($item['color_label']) . ')';
+         }
+         $html[] = "<span style=\"{$item['style']}\">{$text}</span>";
+      }
+
+      return implode('<br>', $html);
+   }
+
+   /**
+    * Get or compute cached printer data for search columns.
+    */
+   static function getSearchData($printers_id) {
+      if (isset(self::$searchDataCache[$printers_id])) {
+         return self::$searchDataCache[$printers_id];
+      }
+
+      $printer = new Printer();
+      if (!$printer->getFromDB($printers_id)) {
+         self::$searchDataCache[$printers_id] = null;
+         return null;
+      }
+
+      $init_pages = (int)$printer->fields['init_pages_counter'];
+      $last_pages = (int)$printer->fields['last_pages_counter'];
+      $data = PluginPrintercountersCartridge_Yield::getUsedCartridgesData($printers_id, $init_pages, $last_pages);
+
+      self::$searchDataCache[$printers_id] = $data;
+      return $data;
+   }
+
+   /**
+    * Render est. end date column.
+    */
+   static function renderEstEndDate($printers_id) {
+      global $CFG_GLPI;
+      if ($printers_id <= 0) return '&mdash;';
+
+      $data = self::getSearchData($printers_id);
+      if (empty($data)) return '&mdash;';
+
+      $colorVHigh = $CFG_GLPI['priority_5'] ?? '#ff5555';
+      $dateFormat = (int)($CFG_GLPI['date_format'] ?? 0);
+      $now = new DateTime();
+      $items = [];
+
+      $colorInfo = self::getCartridgeColorInfo($printers_id);
+      $multi = count($data) > 1;
+
+      // Iterate in canonical color order
+      foreach ($colorInfo as $cid => $_ci) {
+         if (!isset($data[$cid])) continue;
+         $d = $data[$cid];
+         $label = $_ci['label'];
+         $suffix = ($multi && $label) ? ' (' . htmlspecialchars($label) . ')' : '';
+
+         if ($d['toner_consumed'] === null || $d['toner_consumed'] <= 0
+             || $d['toner_consumed'] >= 100 || !$d['date_use']) {
+            $items[] = '&mdash;' . $suffix;
+            continue;
+         }
+         $start = new DateTime($d['date_use']);
+         $daysUsed = max(1, (int)$now->diff($start)->days);
+         $rate = $d['toner_consumed'] / $daysUsed;
+         $remaining = 100 - $d['toner_consumed'];
+         $daysRemaining = ($rate > 0) ? round($remaining / $rate) : 0;
+         $endDate = (clone $now)->modify("+{$daysRemaining} days");
+
+         $text = self::formatDate($endDate, $dateFormat) . $suffix;
+         if ($daysRemaining <= 5) {
+            $items[] = "<span style=\"color:{$colorVHigh}\">{$text}</span>";
+         } else {
+            $items[] = $text;
+         }
+      }
+
+      return empty($items) ? '&mdash;' : implode('<br>', $items);
+   }
+
+   /**
+    * Render toner coverage column.
+    */
+   static function renderTonerCoverage($printers_id) {
+      global $CFG_GLPI;
+      if ($printers_id <= 0) return '&mdash;';
+
+      $data = self::getSearchData($printers_id);
+      if (empty($data)) return '&mdash;';
+
+      $colorCritical = $CFG_GLPI['priority_6'] ?? '#ff0000';
+      $colorInfo = self::getCartridgeColorInfo($printers_id);
+      $multi = count($data) > 1;
+      $items = [];
+
+      // Iterate in canonical color order
+      foreach ($colorInfo as $cid => $_ci) {
+         if (!isset($data[$cid])) continue;
+         $d = $data[$cid];
+         $label = $_ci['label'];
+         $suffix = ($multi && $label) ? ' (' . htmlspecialchars($label) . ')' : '';
+
+         if ($d['coverage'] === null) {
+            $items[] = '&mdash;' . $suffix;
+            continue;
+         }
+
+         $cov = $d['coverage'];
+         $text = number_format($cov, 2, ',', '.') . '%' . $suffix;
+
+         if ($cov <= 5.0) {
+            $style = "color:rgb(var(--tblr-primary-rgb))";
+         } else {
+            $style = "color:{$colorCritical}";
+         }
+
+         $items[] = "<span style=\"{$style}\">{$text}</span>";
+      }
+
+      return empty($items) ? '&mdash;' : implode('<br>', $items);
+   }
+
+   /** Canonical SNMP color sort order. */
+   static $colorOrder = ['black' => 0, 'cyan' => 1, 'magenta' => 2, 'yellow' => 3, 'other' => 4];
+
+   /**
+    * Get color info for in-use cartridges of a printer.
+    * Returns [cartridge_id => ['key' => snmp_color_key, 'label' => localized_label], ...]
+    * sorted by canonical color order (black, cyan, magenta, yellow, other).
+    */
+   static function getCartridgeColorInfo($printers_id) {
+      global $DB;
+      static $cache = [];
+      if (isset($cache[$printers_id])) return $cache[$printers_id];
+
+      $result = $DB->doQuery("
+         SELECT c.id, COALESCE(ey.snmp_color, '') AS snmp_color
+         FROM glpi_cartridges c
+         JOIN glpi_cartridgeitems ci ON ci.id = c.cartridgeitems_id
+         LEFT JOIN " . PluginPrintercountersExpected_Yield::$table . " ey
+            ON ey.cartridgeitemtypes_id = ci.cartridgeitemtypes_id
+            AND ci.cartridgeitemtypes_id > 0
+         WHERE c.printers_id = " . (int)$printers_id . "
+           AND c.date_use IS NOT NULL AND c.date_out IS NULL
+      ");
+
+      $info = [];
+      if ($result) {
+         while ($row = $result->fetch_assoc()) {
+            $color = $row['snmp_color'];
+            $info[(int)$row['id']] = [
+               'key'   => $color,
+               'label' => $color
+                  ? PluginPrintercountersExpected_Yield::getColorLabel($color)
+                  : '',
+            ];
+         }
+      }
+
+      // Sort by canonical color order
+      $order = self::$colorOrder;
+      uasort($info, function ($a, $b) use ($order) {
+         $oa = $order[$a['key']] ?? 99;
+         $ob = $order[$b['key']] ?? 99;
+         return $oa - $ob;
+      });
+
+      $cache[$printers_id] = $info;
+      return $info;
+   }
+
+   /**
+    * Get color labels for cartridges of a printer (convenience wrapper).
+    */
+   static function getCartridgeColorLabels($printers_id) {
+      $info = self::getCartridgeColorInfo($printers_id);
+      $labels = [];
+      foreach ($info as $cid => $i) {
+         $labels[$cid] = $i['label'];
+      }
+      return $labels;
+   }
+
+   /**
+    * Format a DateTime according to GLPI date format setting.
+    */
+   static function formatDate(DateTime $date, int $format): string {
+      switch ($format) {
+         case 1: return $date->format('d-m-Y');
+         case 2: return $date->format('m-d-Y');
+         default: return $date->format('Y-m-d');
+      }
    }
 
    /**

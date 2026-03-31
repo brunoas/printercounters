@@ -1085,3 +1085,23 @@ msgstr "Páginas restantes est."
 #: inc/cartridge_yield.class.php:471
 msgid "Est. end date"
 msgstr "Previsão Fim de Vida"
+
+#: inc/item_recordmodel.class.php:878
+msgid "Toner remaining (%)"
+msgstr "Toner restante (%)"
+
+#: inc/expected_yield.class.php:45
+msgid "Black"
+msgstr "Preto"
+
+#: inc/expected_yield.class.php:46
+msgid "Cyan"
+msgstr "Ciano"
+
+#: inc/expected_yield.class.php:47
+msgid "Magenta"
+msgstr "Magenta"
+
+#: inc/expected_yield.class.php:48
+msgid "Yellow"
+msgstr "Amarelo"

@@ -34,15 +34,35 @@ class PluginPrintercountersExpected_Yield {
 
    static $table = 'glpi_plugin_printercounters_expected_yields';
 
-   /** Available SNMP color values (RFC 1759 prtMarkerColorantValue). */
-   static $snmp_colors = [
-      ''        => '---',
-      'black'   => 'Black',
-      'cyan'    => 'Cyan',
-      'magenta' => 'Magenta',
-      'yellow'  => 'Yellow',
-      'other'   => 'Other',
-   ];
+   /** Available SNMP color keys (RFC 1759 prtMarkerColorantValue). */
+   static $snmp_colors = ['', 'black', 'cyan', 'magenta', 'yellow', 'other'];
+
+   /**
+    * Get localized label for an SNMP color key.
+    */
+   static function getColorLabel($key) {
+      $labels = [
+         'black'   => __('Black', 'printercounters'),
+         'cyan'    => __('Cyan', 'printercounters'),
+         'magenta' => __('Magenta', 'printercounters'),
+         'yellow'  => __('Yellow', 'printercounters'),
+         'other'   => __('Other', 'printercounters'),
+      ];
+      return $labels[$key] ?? '---';
+   }
+
+   /**
+    * Get all SNMP colors as [key => localized_label] for dropdowns.
+    */
+   static function getColorDropdownOptions() {
+      $options = ['' => '---'];
+      foreach (self::$snmp_colors as $key) {
+         if ($key !== '') {
+            $options[$key] = self::getColorLabel($key);
+         }
+      }
+      return $options;
+   }
 
    /**
     * POST_ITEM_FORM hook handler.
@@ -91,7 +111,7 @@ class PluginPrintercountersExpected_Yield {
       echo '<label class="col-form-label col-xxl-5 text-xxl-end" for="' . $id_color . '">' . $label_color . '</label>';
       echo '<div class="col-xxl-7 field-container">';
       echo '<select id="' . $id_color . '" class="form-select" ' . $disabled . ' name="snmp_color">';
-      foreach (self::$snmp_colors as $key => $label_text) {
+      foreach (self::getColorDropdownOptions() as $key => $label_text) {
          $selected = ($key === $current_color) ? ' selected' : '';
          echo '<option value="' . htmlspecialchars($key) . '"' . $selected . '>' . htmlspecialchars($label_text) . '</option>';
       }
@@ -228,7 +248,7 @@ class PluginPrintercountersExpected_Yield {
 
       $cartridgeitemtypes_id = (int)$cartridgeitemtypes_id;
       $expected_yield = (int)$expected_yield;
-      $snmp_color = isset(self::$snmp_colors[$snmp_color]) ? $snmp_color : '';
+      $snmp_color = in_array($snmp_color, self::$snmp_colors) ? $snmp_color : '';
 
       if ($cartridgeitemtypes_id <= 0) {
          return;

@@ -2180,6 +2180,9 @@ class PluginPrintercountersRecord extends CommonDBTM {
          $values = [$field => $values];
       }
       switch ($field) {
+         case 'date':
+            return PluginPrintercountersItem_Recordmodel::renderLastRecordDate($values[$field] ?? '');
+
          case 'record_type' :
             return self::getRecordType($values[$field]);
 

@@ -365,6 +365,7 @@ class PluginPrintercountersCartridge_Yield {
     * Inject the summary table HTML after the worn cartridges table.
     */
    static function injectSummaryTable($printers_id, $init_pages = 0) {
+      global $CFG_GLPI;
       $summary = self::getSummaryByModel($printers_id, $init_pages);
 
       if (empty($summary)) {
@@ -384,11 +385,22 @@ class PluginPrintercountersCartridge_Yield {
          $total_str    = number_format($data['total'], 0, ',', '.');
          $avg_str      = number_format($data['avg'], 0, ',', '.');
 
+         $coverage = null;
          if ($data['expected'] > 0 && $data['avg'] > 0) {
             $coverage = ($data['expected'] / $data['avg']) * 5.0;
             $coverage_str = number_format($coverage, 2, ',', '.') . '%';
          } else {
             $coverage_str = '&mdash;';
+         }
+
+         $cov_style = '';
+         if ($coverage !== null) {
+            if ($coverage <= 5.0) {
+               $cov_style = "color:rgb(var(--tblr-primary-rgb))";
+            } else {
+               $cov_color = $CFG_GLPI['priority_6'] ?? '#ff0000';
+               $cov_style = "color:{$cov_color}";
+            }
          }
 
          $name = htmlspecialchars($data['name']);
@@ -399,7 +411,7 @@ class PluginPrintercountersCartridge_Yield {
          $rows .= "<td class=\"text-end\">{$expected_str}</td>";
          $rows .= "<td class=\"text-end\">{$total_str}</td>";
          $rows .= "<td class=\"text-end\">{$avg_str}</td>";
-         $rows .= "<td class=\"text-end\">{$coverage_str}</td>";
+         $rows .= "<td class=\"text-end\" style=\"{$cov_style}\">{$coverage_str}</td>";
          $rows .= "</tr>";
       }
 
@@ -467,6 +479,7 @@ HTML;
       $jsonExpected = json_encode($expectedYields);
       $jsonUsed = json_encode($usedData);
       $dateFormat = (int)($CFG_GLPI['date_format'] ?? 0);
+      $colorCritical = $CFG_GLPI['priority_6'] ?? '#ff0000';
       $coverageHeader = __('Coverage (%)', 'printercounters');
       $hdrCounter = __('Printer counter', 'printercounters');
       $hdrConsumed = __('Consumed (%)', 'printercounters');
@@ -482,6 +495,13 @@ HTML;
    var usedData = {$jsonUsed};
    var lastPages = {$lastPages};
    var dateFormat = {$dateFormat};
+   var covColors = {critical: '{$colorCritical}'};
+
+   function styleCoverage(el, value) {
+      if (value === null || isNaN(value)) return;
+      if (value <= 5.0) el.style.color = 'rgb(var(--tblr-primary-rgb))';
+      else el.style.color = covColors.critical;
+   }
 
    function addCell(row, refCell, text, attrs) {
       var td = document.createElement('td');
@@ -579,12 +599,14 @@ HTML;
             if (yields.hasOwnProperty(id) && cells[pagesCol]) {
                cells[pagesCol].textContent = yields[id].toLocaleString();
             }
-            var covText = null;
+            var covVal = null;
             if (yields.hasOwnProperty(id) && expected.hasOwnProperty(id)
                 && expected[id] > 0 && yields[id] > 0) {
-               covText = (expected[id] / yields[id] * 5.0).toFixed(2).replace('.', ',') + '%';
+               covVal = expected[id] / yields[id] * 5.0;
             }
-            addCell(row, cells[pagesCol], covText);
+            var covText = covVal !== null ? covVal.toFixed(2).replace('.', ',') + '%' : null;
+            var covCell = addCell(row, cells[pagesCol], covText);
+            styleCoverage(covCell, covVal);
          });
 
          var tfoot = table.querySelector('tfoot');
@@ -627,7 +649,9 @@ HTML;
             ref = addCell(row, ref, lastPages > 0 ? lastPages.toLocaleString() : null);
             ref = addCell(row, ref, d && d.toner_consumed !== null ? d.toner_consumed + '%' : null);
             ref = addCell(row, ref, d && d.pages_printed > 0 ? d.pages_printed.toLocaleString() : null);
-            ref = addCell(row, ref, d && d.coverage !== null ? d.coverage.toFixed(2).replace('.', ',') + '%' : null);
+            var covCell = addCell(row, ref, d && d.coverage !== null ? d.coverage.toFixed(2).replace('.', ',') + '%' : null);
+            styleCoverage(covCell, d ? d.coverage : null);
+            ref = covCell;
             ref = addCell(row, ref, d && d.remaining !== null ? d.remaining.toLocaleString() : null);
             // Est. end date
             var endDate = (d && d.toner_consumed !== null && d.date_use) ?
