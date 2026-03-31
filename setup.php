@@ -29,7 +29,7 @@
 
 use Glpi\Plugin\Hooks;
 
-define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.0.0');
+define('PLUGIN_PRINTERCOUNTERS_VERSION', '3.1.0');
 
 // Minimal GLPI version, inclusive
 define('PLUGIN_PRINTERCOUNTERS_MIN_GLPI', '11.0.0');
@@ -104,6 +104,9 @@ function plugin_init_printercounters() {
 
       // Item transfer
       $PLUGIN_HOOKS[Hooks::ITEM_TRANSFER]['printercounters'] = 'plugin_item_transfer_printercounters';
+
+      // Correct cartridge yield calculation (per model) on Printer > Cartridges tab
+      $PLUGIN_HOOKS[Hooks::POST_SHOW_TAB]['printercounters'] = 'plugin_printercounters_post_show_tab';
    }
 }
 

@@ -271,6 +271,11 @@ function plugin_item_delete_printercounters($item) {
    }
 }
 
+// Hook: correct cartridge yield display (per model) on Printer > Cartridges tab
+function plugin_printercounters_post_show_tab($params) {
+   PluginPrintercountersCartridge_Yield::postShowTab($params);
+}
+
 // Hook done on transfer item case
 function plugin_item_transfer_printercounters($input) {
    switch ($input['type']) {
