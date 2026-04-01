@@ -120,7 +120,7 @@ function plugin_version_printercounters() {
    return [
       'name'         => __('Printer counters', 'printercounters'),
       'version'      => PLUGIN_PRINTERCOUNTERS_VERSION,
-      'author'       => "<a href='https://blogglpi.infotel.com'>Infotel</a>",
+      'author'       => "Bruno Andrade",
       'license'      => 'GPLv2+',
       'homepage'     => 'https://github.com/brunoas/printercounters',
       'requirements' => [
